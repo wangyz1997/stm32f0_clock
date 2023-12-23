@@ -2,3 +2,4 @@ MDK-ARM/stm32f0_clock/
 *.dbgconf
 *.scvd
 *.uvguix.*
+JLink*
