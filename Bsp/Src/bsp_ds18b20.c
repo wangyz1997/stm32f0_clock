@@ -110,7 +110,7 @@ HAL_StatusTypeDef bsp_ds18b20_get_temp(float *temp_out)
     *temp_out = -0.0625f * temp; //输出负数
 	} else { //温度为正
     int16_t temp = temp_msb << 8 | temp_lsb;
-    *temp_out = 0.0625f * temp;
+    *temp_out = 0.0625f * temp; //12位转换精度 每LSB等于0.0625度
 	}
 
   return HAL_OK;

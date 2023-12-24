@@ -1,103 +1,118 @@
 #include "bsp_lcd_st7565.h"
-             
+
 const uint8_t LCD_FONT6x8[][6];
 const uint8_t LCD_FONT8x16[][16];
-                     
-static void lcd_send_cmd(uint8_t cmd);
-static void lcd_send_dat(const uint8_t *dat_buf, uint16_t dat_len);
-static void lcd_set_cursor(uint8_t column, uint8_t page);
-static void lcd_6x8_char(uint8_t y, uint8_t x, char ch);
-static void lcd_8x16_char(uint8_t y, uint8_t x, char ch);
 
-static void lcd_send_cmd(uint8_t cmd)
+static uint8_t bsp_lcd_brightness = 90;
+
+static void bsp_lcd_send_cmd(uint8_t cmd);
+static void bsp_lcd_send_dat(const uint8_t *dat_buf, uint16_t dat_len);
+static void bsp_lcd_set_cursor(uint8_t column, uint8_t page);
+static void bsp_lcd_6x8_char(uint8_t y, uint8_t x, char ch);
+static void bsp_lcd_8x16_char(uint8_t y, uint8_t x, char ch);
+
+static void bsp_lcd_send_cmd(uint8_t cmd)
 {
   HAL_GPIO_WritePin(LCD_DC_GPIO_Port, LCD_DC_Pin, GPIO_PIN_RESET); //发送指令
   HAL_GPIO_WritePin(LCD_CS_GPIO_Port, LCD_CS_Pin, GPIO_PIN_RESET);
-  HAL_SPI_Transmit(&BSP_LCD_SPI_INST, &cmd, 1, 200);
+  HAL_SPI_Transmit(&BSP_LCD_SPI, &cmd, 1, 200);
   HAL_GPIO_WritePin(LCD_CS_GPIO_Port, LCD_CS_Pin, GPIO_PIN_SET);
 }
 
-static void lcd_send_byte(uint8_t byte)
+static void bsp_lcd_send_byte(uint8_t byte)
 {
   HAL_GPIO_WritePin(LCD_DC_GPIO_Port, LCD_DC_Pin, GPIO_PIN_SET); //发送数据
   HAL_GPIO_WritePin(LCD_CS_GPIO_Port, LCD_CS_Pin, GPIO_PIN_RESET);
-  HAL_SPI_Transmit(&BSP_LCD_SPI_INST, &byte, 1, 200);
+  HAL_SPI_Transmit(&BSP_LCD_SPI, &byte, 1, 200);
   HAL_GPIO_WritePin(LCD_CS_GPIO_Port, LCD_CS_Pin, GPIO_PIN_SET);
 }
 
-static void lcd_send_bytes(uint8_t *bytes, uint8_t bytes_count)
+static void bsp_lcd_send_bytes(uint8_t *bytes, uint8_t bytes_count)
 {
   HAL_GPIO_WritePin(LCD_DC_GPIO_Port, LCD_DC_Pin, GPIO_PIN_SET); //发送数据
   HAL_GPIO_WritePin(LCD_CS_GPIO_Port, LCD_CS_Pin, GPIO_PIN_RESET);
-  HAL_SPI_Transmit(&BSP_LCD_SPI_INST, bytes, bytes_count, 200);
+  HAL_SPI_Transmit(&BSP_LCD_SPI, bytes, bytes_count, 200);
   HAL_GPIO_WritePin(LCD_CS_GPIO_Port, LCD_CS_Pin, GPIO_PIN_SET);
 }
 
-static void lcd_init_regs(void)
+static void bsp_lcd_init_regs(void)
 {
-  lcd_send_cmd(0xE2);
-	HAL_Delay(5);
-	lcd_send_cmd(0x2C);		/* 升压步骤1 */
-	HAL_Delay(5);
-	lcd_send_cmd(0x2E);		/* 升压步骤2 */
-	HAL_Delay(5);
-	lcd_send_cmd(0x2F);		/* 升压步骤3 */
-	HAL_Delay(5);
-	lcd_send_cmd(0x26);		/* 粗调对比度，可设置范围20～27 */
-	lcd_send_cmd(0x81);		/* 微调对比度 */
-	lcd_send_cmd(0x18);		/* 微调对比度的值，可设置范围0～63 */	
-	lcd_send_cmd(0xA2);		/* 1/9偏压比(bias) */
-	lcd_send_cmd(0xC8);		/* 行扫描顺序：从上到下 */
-	lcd_send_cmd(0xA0);		/* 列扫描顺序：从左到右 */
-	lcd_send_cmd(0x40);		/* 起始行：从第一行开始 */
+  bsp_lcd_send_cmd(0xE2);
+  HAL_Delay(5);
+  bsp_lcd_send_cmd(0x2C);		/* 升压步骤1 */
+  HAL_Delay(5);
+  bsp_lcd_send_cmd(0x2E);		/* 升压步骤2 */
+  HAL_Delay(5);
+  bsp_lcd_send_cmd(0x2F);		/* 升压步骤3 */
+  HAL_Delay(5);
+  bsp_lcd_send_cmd(0x26);		/* 粗调对比度，可设置范围20～27 */
+  bsp_lcd_send_cmd(0x81);		/* 微调对比度 */
+  bsp_lcd_send_cmd(0x18);		/* 微调对比度的值，可设置范围0～63 */
+  bsp_lcd_send_cmd(0xA2);		/* 1/9偏压比(bias) */
+  bsp_lcd_send_cmd(0xC8);		/* 行扫描顺序：从上到下 */
+  bsp_lcd_send_cmd(0xA0);		/* 列扫描顺序：从左到右 */
+  bsp_lcd_send_cmd(0x40);		/* 起始行：从第一行开始 */
 }
 
-static void lcd_set_cursor(uint8_t column, uint8_t page)
+static void bsp_lcd_set_cursor(uint8_t column, uint8_t page)
 {
-	lcd_send_cmd(0xB0 + page);
-	lcd_send_cmd(0x10 + (column >> 4));
-	lcd_send_cmd(column & 0x0F);
+  bsp_lcd_send_cmd(0xB0 + page);
+  bsp_lcd_send_cmd(0x10 + (column >> 4));
+  bsp_lcd_send_cmd(column & 0x0F);
 }
 
-static void lcd_6x8_char(uint8_t y, uint8_t x, char ch)
-{	
-	lcd_set_cursor(x, y);
-	lcd_send_bytes((uint8_t*)&LCD_FONT6x8[(uint8_t)(ch - 32)][0], 6);
+static void bsp_lcd_6x8_char(uint8_t y, uint8_t x, char ch)
+{
+  bsp_lcd_set_cursor(x, y);
+  bsp_lcd_send_bytes((uint8_t*)&LCD_FONT6x8[(uint8_t)(ch - 32)][0], 6);
 }
 
-static void lcd_8x16_char(uint8_t y, uint8_t x, char ch)
-{	
-	lcd_set_cursor(x, y);
-	lcd_send_bytes((uint8_t*)&LCD_FONT8x16[(uint8_t)(ch - 32)][0], 8);
-	lcd_set_cursor(x, y + 1);
-	lcd_send_bytes((uint8_t*)&LCD_FONT8x16[(uint8_t)(ch - 32)][8], 8);
+static void bsp_lcd_8x16_char(uint8_t y, uint8_t x, char ch)
+{
+  bsp_lcd_set_cursor(x, y);
+  bsp_lcd_send_bytes((uint8_t*)&LCD_FONT8x16[(uint8_t)(ch - 32)][0], 8);
+  bsp_lcd_set_cursor(x, y + 1);
+  bsp_lcd_send_bytes((uint8_t*)&LCD_FONT8x16[(uint8_t)(ch - 32)][8], 8);
 }
 
-void lcd_clear(void)
+void bsp_lcd_clear(void)
 {
   uint8_t line_buffer[BSP_LCD_X_PIXELS] = { 0 };
-  
+
   for (uint8_t i = 0; i < BSP_LCD_Y_PIXELS / 8; i ++) {
-    lcd_set_cursor(0, i);
-    lcd_send_bytes(line_buffer, BSP_LCD_X_PIXELS);
+    bsp_lcd_set_cursor(0, i);
+    bsp_lcd_send_bytes(line_buffer, BSP_LCD_X_PIXELS);
   }
 }
 
-void lcd_init(void)
+void bsp_lcd_set_bl_brightness(uint8_t brightness)
 {
-  HAL_GPIO_WritePin(LCD_RST_GPIO_Port, LCD_RST_Pin, GPIO_PIN_RESET);
-	HAL_Delay(10);
-  HAL_GPIO_WritePin(LCD_RST_GPIO_Port, LCD_RST_Pin, GPIO_PIN_SET); //复位LCD
-	HAL_Delay(10);
-  
-  lcd_init_regs(); //初始化寄存器
-  
-  lcd_clear(); //清屏
-  
-	lcd_send_cmd(0xAF); // 开显示
+  if (brightness == 0) {
+    HAL_TIM_PWM_Stop(&BSP_LCD_BL_PWM_TIM, BSP_LCD_BL_PWM_CH);
+  } else {
+    uint32_t oc = __HAL_TIM_GET_AUTORELOAD(&BSP_LCD_BL_PWM_TIM) * brightness / 100;
+    __HAL_TIM_SET_COMPARE(&BSP_LCD_BL_PWM_TIM, BSP_LCD_BL_PWM_CH, oc);
+    HAL_TIM_PWM_Start(&BSP_LCD_BL_PWM_TIM, BSP_LCD_BL_PWM_CH);
+  }
 }
 
-void lcd_6x8_str(uint8_t y, uint8_t x, const char *str)
+void bsp_lcd_init(void)
+{
+  HAL_GPIO_WritePin(LCD_RST_GPIO_Port, LCD_RST_Pin, GPIO_PIN_RESET);
+  HAL_Delay(10);
+  HAL_GPIO_WritePin(LCD_RST_GPIO_Port, LCD_RST_Pin, GPIO_PIN_SET); //复位LCD
+  HAL_Delay(10);
+
+  bsp_lcd_init_regs(); //初始化寄存器
+
+  bsp_lcd_clear(); //清屏
+  bsp_lcd_send_cmd(0xAF); //开显示
+
+  HAL_TIM_Base_Start(&BSP_LCD_BL_PWM_TIM);
+  bsp_lcd_set_bl_brightness(bsp_lcd_brightness);
+}
+
+void bsp_lcd_6x8_str(uint8_t y, uint8_t x, const char *str)
 {
   while(*str != '\0') {
     if(x > BSP_LCD_X_PIXELS - 6 || *str == '\n') {
@@ -109,15 +124,15 @@ void lcd_6x8_str(uint8_t y, uint8_t x, const char *str)
     } else if(*str<32 || *str>127) {
       continue;
     }
-		
-    lcd_6x8_char(y, x, *str);
+
+    bsp_lcd_6x8_char(y, x, *str);
 
     x += 6;
     str ++;
   }
 }
 
-void lcd_8x16_str(uint8_t y, uint8_t x, const char *str)
+void bsp_lcd_8x16_str(uint8_t y, uint8_t x, const char *str)
 {
   while(*str) {
     if(x > BSP_LCD_X_PIXELS - 8 || *str == '\n') {
@@ -130,24 +145,24 @@ void lcd_8x16_str(uint8_t y, uint8_t x, const char *str)
       continue;
     }
 
-    lcd_8x16_char(y, x, *str);
+    bsp_lcd_8x16_char(y, x, *str);
 
     x += 8;
     str ++;
-	}
+  }
 }
 
-void lcd_bitmap(uint8_t x0, uint8_t y0, uint8_t x_lenth, uint8_t y_lenth, const uint8_t *bmp_tab)
+void bsp_lcd_bitmap(uint8_t x0, uint8_t y0, uint8_t x_lenth, uint8_t y_lenth, const uint8_t *bmp_tab)
 {
-	for(uint8_t y = 0; y < y_lenth; y ++) {
-    lcd_set_cursor(x0, y0 + y);
-		lcd_send_bytes((uint8_t*)bmp_tab + x_lenth * y, x_lenth);
-	}
+  for(uint8_t y = 0; y < y_lenth; y ++) {
+    bsp_lcd_set_cursor(x0, y0 + y);
+    bsp_lcd_send_bytes((uint8_t*)bmp_tab + x_lenth * y, x_lenth);
+  }
 }
 
 /**
  * @brief 6*8的点阵字库
- * 
+ *
  */
 const uint8_t LCD_FONT6x8[][6] = {
   {0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, // ' '
@@ -248,7 +263,7 @@ const uint8_t LCD_FONT6x8[][6] = {
 
 /**
  * @brief 8*16的点阵字库
- * 
+ *
  */
 const uint8_t LCD_FONT8x16[][16] = {
   {0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00}, // ' '

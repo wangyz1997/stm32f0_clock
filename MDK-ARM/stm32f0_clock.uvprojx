@@ -419,6 +419,11 @@
           <GroupName>Application/Bsp</GroupName>
           <Files>
             <File>
+              <FileName>bsp_lcd_st7565.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Bsp\Src\bsp_lcd_st7565.c</FilePath>
+            </File>
+            <File>
               <FileName>bsp_ds18b20.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Bsp\Src\bsp_ds18b20.c</FilePath>
@@ -427,11 +432,6 @@
               <FileName>bsp_ds3231.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Bsp\Src\bsp_ds3231.c</FilePath>
-            </File>
-            <File>
-              <FileName>bsp_lcd_st7565.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Bsp\Src\bsp_lcd_st7565.c</FilePath>
             </File>
             <File>
               <FileName>bsp_buzzer.c</FileName>
